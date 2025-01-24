@@ -10,21 +10,17 @@ This repository provides the code and processing pipelines used to generate the 
 
 The repository is organized into several directories, each with a specific role in the analysis pipeline:
 
-1. `exons/`
-Contains the scripts and processing logic for working with Gencode files to extract data about known exons and introns. 
-
-2. `branchpoints/`
-Processes the experimentally identified branchpoints from Mercer et al. Note hg19 genome build.
-
-3. `requirements/`
+1. `requirements/`
 Includes the scripts to compute splicing requirements and create sequence logos.
 
-4. `heuristics/`
+2. `heuristics/`
 Houses the code for generating data-driven heuristics for splice-altering variant evaluation and spliceogenicity.
 
-5. `novel/`
+3. `novel/`
 Contains the code to apply splicing requirements to novel variants and the plot for pseudoexon inclusion mechanisms.
 
-6. `outcomes/`
+4. `outcomes/`
 Plotting the splicing transcript outcomes based on the location of the splice-altering variant.
 
+5. `references/`
+Holds the reference files.
