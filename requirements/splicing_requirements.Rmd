@@ -1,0 +1,146 @@
+---
+title: "splicing_requirements"
+output: html_document
+date: "2025-01-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(ggseqlogo)
+library(ggpubr)
+```
+
+## Exon processing
+```{r}
+
+## Gencode Processing
+
+gencode <- read.csv("../exons/gencode.v44.exons.canonical.proteincoding.annotated.seq.tsv", sep = "\t", na.strings = ".")
+
+gencode <- gencode[(is.na(gencode$upstream_intron_length) | gencode$upstream_intron_length > 50 | (toupper(substr(gencode$upstream_exon_donor_seq,52,53)) == "GT" & toupper(substr(gencode$acceptor_seq,49,50)) == "AG")) & (is.na(gencode$downstream_intron_length) | gencode$downstream_intron_length > 50 | (toupper(substr(gencode$donor,52,53)) == "GT" & toupper(substr(gencode$acceptor_seq,49,50)) == "AG")),]
+
+gencode$upstream_intron_type <- as.factor(gencode$upstream_intron_type)
+gencode$upstream_intron_type <- relevel(gencode$upstream_intron_type, "U2")
+
+nrow(gencode)
+
+```
+
+## Branchpoint processing
+```{r}
+branchpoints <- read.csv("../branchpoints/branchpoints.hg19.fastas.tsv", sep = "\t", na.strings = ".")
+
+branchpoints$intron_type <- as.factor(branchpoints$intron_type)
+branchpoints$intron_type <- relevel(branchpoints$intron_type, "U2")
+
+branchpoints$additional_BPS <- as.factor(ifelse(!is.na(branchpoints$bp_options) & branchpoints$bp_options > 1, "yes", "no"))
+branchpoints$additional_AG <- as.factor(ifelse(!is.na(branchpoints$downstream_exon_acceptor_distance2) & branchpoints$downstream_exon_acceptor_distance2 <= 50, "yes", "no"))
+
+singleBPSAG <- branchpoints[branchpoints$additional_BPS == "no" & branchpoints$additional_AG == "no",]
+
+singleBPSAG_U2 <- singleBPSAG[singleBPSAG$intron_type == "U2",]
+singleBPSAG_U12 <- singleBPSAG[singleBPSAG$intron_type == "U12",]
+
+nrow(singleBPSAG_U2)
+nrow(singleBPSAG_U12)
+
+```
+
+
+## Sequence logo plotting
+```{r, echo=FALSE}
+
+singleBPSAG_U2$BPAG_seq <- paste(substr(singleBPSAG_U2$bp_seq,46,53),substr(singleBPSAG_U2$acceptor_seq,28,53), sep="NNN")
+singleBPSAG_U2$GTBPAG_seq <- toupper(paste(substr(singleBPSAG_U2$upstream_donor_seq,49,55), singleBPSAG_U2$BPAG_seq, sep="NNN"))
+logo_U2_clean <- ggplot() + geom_logo( paste(singleBPSAG_U2$GTBPAG_seq), method = "bits", seq_type = "DNA") + theme_logo() + ylim(0,2) + theme(panel.grid.major.y = element_line(color = "grey90"))
+
+logo_U2_clean
+
+```
+
+
+## Minimum exon length
+Calculated as the value 99% of exons are greater than or equal to
+```{r}
+
+EL_first <- sort(gencode[gencode$exon_number==1,"exon_length"])
+EL_middle <- sort(gencode[gencode$exon_number!=gencode$exon_count & gencode$exon_number!=1,"exon_length"])
+EL_last <- sort(gencode[gencode$exon_number==gencode$exon_count,"exon_length"])
+
+min_exon_first <- gghistogram(gencode[!is.na(gencode$exon_length) & gencode$exon_number!=gencode$exon_count & gencode$exon_number==1,], x="exon_length", bins = 30, legend = "none", xlab="Exon Length (bp)", ylab="Count", fill = "#506969") + geom_vline(xintercept=EL_first[length(EL_first)*(0.01)], color="#BB5566", size=1, linetype="dashed") + xlim(1,150) + annotate("text", x = EL_first[length(EL_first)*(0.01)]-13, y = 385, label = EL_first[length(EL_first)*(0.01)], color = "#BB5566", size = 5)
+
+min_exon_middle <- gghistogram(gencode[!is.na(gencode$exon_length) & gencode$exon_number!=gencode$exon_count & gencode$exon_number!=1,], x="exon_length", bins = 30, legend = "none", xlab="Exon Length (bp)", ylab="Count", fill = "#506969") + geom_vline(xintercept=EL_middle[length(EL_middle)*(0.01)], color="#BB5566", size=1, linetype="dashed") + xlim(1,150) + annotate("text", x = EL_middle[length(EL_middle)*(0.01)]-13, y = 7000, label = EL_middle[length(EL_middle)*(0.01)], color = "#BB5566", size = 5)
+
+min_exon_last <- gghistogram(gencode[!is.na(gencode$exon_length) & gencode$exon_number==gencode$exon_count & gencode$exon_number!=1,], x="exon_length", bins = 30, legend = "none", xlab="Exon Length (bp)", ylab="Count", fill = "#506969") + geom_vline(xintercept=EL_last[length(EL_last)*(0.01)], color="#BB5566", size=1, linetype="dashed") + xlim(1,150) + annotate("text", x = EL_last[length(EL_last)*(0.01)]-20, y = 30, label = EL_last[length(EL_last)*(0.01)], color = "#BB5566", size = 5)
+
+fig_exonlengths <- gridExtra::grid.arrange(min_exon_first, min_exon_middle, min_exon_last, nrow=1) 
+
+```
+
+
+## Splicing Checklist Values
+
+# Minimum intron Length
+Calculated as the value 99% of introns are greater than or equal to
+```{r}
+
+intron_lengths_U2 <- sort(gencode[!is.na(gencode$upstream_intron_length) & gencode$upstream_intron_type == "U2",9]-2)
+intron_lengths_U12 <- sort(gencode[!is.na(gencode$upstream_intron_length) & gencode$upstream_intron_type == "U12",9]-2)
+
+min_intron_U2 <- gghistogram(gencode[!is.na(gencode$upstream_intron_length) & gencode$upstream_intron_type == "U2",], x="upstream_intron_length", fill = "upstream_intron_type", bins = 50, legend = "none", xlab="Intron Length (nt)", ylab="Count", palette = "#004488") + geom_vline(xintercept=intron_lengths_U2[length(intron_lengths_U2)*(0.01)], color="#BB5566", size=1, linetype="dashed") + xlim(0,200) + annotate("text", x = intron_lengths_U2[length(intron_lengths_U2)*(0.01)]-5, y = 1500, label = intron_lengths_U2[length(intron_lengths_U2)*(0.01)], color = "#BB5566", size = 5)
+
+min_intron_U2
+```
+
+# Polypyrimidine Tract content
+Calculated as the value 99% of introns are greater than or equal to
+```{r}
+
+PPTbaseTally <- function(x) {
+  tally <- table(factor(toupper(unlist(strsplit(x, ""))),levels=c("A","C","G","T")))
+  as.numeric(tally["C"]) + as.numeric(tally["T"])
+}
+
+gencode$PPT_seq <- toupper(substr(gencode$acceptor_seq,27,46))
+gencode$PPT_TCtally <- unlist(lapply(gencode$PPT_seq,PPTbaseTally))
+
+gencode_PPT_U2 <- gencode[!is.na(gencode$upstream_intron_length) & gencode$upstream_intron_type == "U2",]
+
+gencode_PPT_U2_TC <- sort(gencode_PPT_U2$PPT_TCtally)
+
+fig_PPT_U2 <- gghistogram(gencode_PPT_U2, x="PPT_TCtally", bins=22, fill = "upstream_intron_type", legend="none", palette = "#004488", xlab="Pyrimidines between -24 and -5", ylab="Count") + geom_vline(xintercept = gencode_PPT_U2_TC[length(gencode_PPT_U2_TC)*0.01],color="#BB5566", size=1, linetype="dashed") + xlim(0,21) + annotate("text", x = gencode_PPT_U2_TC[length(gencode_PPT_U2_TC)*0.01]-0.5, y = 30000, label = gencode_PPT_U2_TC[length(gencode_PPT_U2_TC)*0.01], color = "#BB5566", size = 5)
+
+fig_PPT_U2
+
+```
+
+
+# Distance between 3`SS and the closest AG dinucleotide
+Calculated as the value 99% of introns are greater than or equal to
+```{r}
+
+gencode$AGEZ_location <- gregexpr(pattern ="AG", substr(gencode$acceptor_seq,1,48), ignore.case = TRUE)
+gencode$AGEZ_location_closest <- 50-unlist(lapply(gencode$AGEZ_location, max))
+
+AGEZ_list_U2 <- sort(gencode[!is.na(gencode$upstream_intron_type) & gencode$upstream_intron_type == "U2" & gencode$AGEZ_location_closest!=51 & gencode$AGEZ_location_closest!=3 & gencode$AGEZ_location_closest!=4 & !is.na(gencode$AGEZ_location_closest),"AGEZ_location_closest"])
+
+AGEZ_U2 <- gghistogram(gencode[!is.na(gencode$upstream_intron_type) & gencode$upstream_intron_type == "U2" & !is.na(gencode$AGEZ_location_closest),"AGEZ_location_closest"], bins=51, fill="#004488", legend = "none", xlab="3'SS to AG dinucleotide (bp)", ylab="Count") + geom_vline(xintercept = AGEZ_list_U2[length(AGEZ_list_U2)*0.01],color="#BB5566", size=1, linetype="dashed") + xlim(0,50) + annotate("text", x = AGEZ_list_U2[length(AGEZ_list_U2)*0.01]-1.5, y = 5000, label = AGEZ_list_U2[length(AGEZ_list_U2)*0.01]+1, color = "#BB5566", size = 5) + annotate("text", x = 4, y = 1650, label = "tolerated", color = "#BB5566", size = 4, angle=90)
+
+AGEZ_U2
+
+```
+
+# Distance between 3`SS and the branchpoint
+Calculated as the value 99% of introns are greater than or equal to
+
+```{r}
+
+BPAG_lengths_U2 <- sort(singleBPSAG_U2$downstream_exon_acceptor_distance)
+
+BPAG_U2 <- gghistogram(singleBPSAG_U2, x="downstream_exon_acceptor_distance", fill = "intron_type", bins = 51, legend = "none", xlab="3'SS to BPS (bp)", ylab="Count", palette = "#004488") + geom_vline(xintercept=BPAG_lengths_U2[length(BPAG_lengths_U2)*(0.01)], color="#BB5566", size=1, linetype="dashed") + xlim(0,50) + annotate("text", x = BPAG_lengths_U2[length(BPAG_lengths_U2)*(0.01)]-1.5, y = 1500, label = BPAG_lengths_U2[length(BPAG_lengths_U2)*(0.01)], color = "#BB5566", size = 5)
+
+BPAG_U2 
+
+```
