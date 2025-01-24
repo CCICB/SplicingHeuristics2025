@@ -1,1 +1,18 @@
 .DS_Store
+
+# Data Files
+*.csv
+*.tsv
+*.json
+*.gz
+*.zip
+*.tar
+*.tar.gz
+*.vcf
+*.bam
+*.bai
+*.fa
+*.fasta
+*.gff
+*.gtf
+*.bed
