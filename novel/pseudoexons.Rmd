@@ -1,0 +1,32 @@
+---
+title: "novel_splicing"
+output: html_document
+date: "2025-01-21"
+---
+
+```{r, echo=FALSE}
+library("UpSetR")
+```
+
+```{r}
+
+library("UpSetR")
+
+pseudoexons <- read.csv("pseudoexons.txt", header=TRUE, sep='\t', na.strings=".")
+
+pseudoexons$GT_created <- ifelse(pseudoexons[,"Change_GT"]=="GT_Created",1,0)
+pseudoexons$GT_usable <- ifelse(pseudoexons[,"Change_GT"]=="GT_Usable",1,0)
+pseudoexons$GT_strengthened <- ifelse(pseudoexons[,"Change_GT"]=="GT_Strengthened",1,0)
+
+pseudoexons$AG_created <- ifelse(pseudoexons[,"Change_AG"]=="AG_Created",1,0)
+pseudoexons$AG_usable <- ifelse(pseudoexons[,"Change_AG"]=="AG_Usable",1,0)
+pseudoexons$AG_strengthened <- ifelse(pseudoexons[,"Change_AG"]=="AG_Strengthened",1,0)
+
+pseudoexons$None <- as.numeric(pseudoexons$Motif == "No")
+pseudoexons[is.na(pseudoexons)] <- 0
+
+upset(pseudoexons[c(5,6,7,8,9,10,14,17,18)], nsets=9, order.by=c("freq"), point.size = 2,	mb.ratio = c(0.5, 0.5), text.scale = 1.2)
+
+```
+
+
