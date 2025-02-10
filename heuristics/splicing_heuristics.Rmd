@@ -1,0 +1,98 @@
+---
+title: "splicing_heuristics"
+output: html_document
+date: "2025-02-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Label the heuristics
+```{r}
+
+disruption_rules <- read.csv("heuristics.tsv", sep='\t')
+
+label_rules_SAV <- data.frame(table(disruption_rules[disruption_rules$class == "SVDBSplice", c("Rule", "Guidelines")]))
+label_rules_normal <- data.frame(table(disruption_rules[disruption_rules$class == "SVDBNormal", c("Rule", "Guidelines")]))
+names(label_rules_SAV)[names(label_rules_SAV) == "Freq"] <- "SAV"
+names(label_rules_normal)[names(label_rules_normal) == "Freq"] <- "Normal"
+label_rules <- merge(label_rules_SAV, label_rules_normal, all=TRUE)
+label_rules$facet <- substr(label_rules$Rule, 1,2)
+
+label_rules[is.na(label_rules)] <- 0
+
+table(disruption_rules[disruption_rules$hgvs_pos=="0" & disruption_rules$Region == "Donor","class"])
+
+label_rules$mean <- label_rules[,"SAV"]/(label_rules[,"SAV"] + label_rules[,"Normal"])
+label_rules <- label_rules[!is.na(label_rules$mean),]
+label_rules <- label_rules[label_rules$Guidelines != "Creation",]
+
+label_list <- function(x) {
+  c(rep(1, x["SAV"]),  rep(0, x["Normal"]))
+}
+
+label_rules$n <- label_rules[,"SAV"] + label_rules[,"Normal"]
+label_rules$list <- apply(label_rules, 1, label_list)
+
+```
+
+
+## Calculate confidence intervals
+```{r}
+
+label_rules$se <- sd(unlist(label_rules$list))/sqrt(label_rules$n)
+label_rules$me <- 1.96 * label_rules$se
+label_rules$conf_LL <- round(label_rules$mean - label_rules$me, digits=3)*100
+label_rules$conf_UL <- round(label_rules$mean + label_rules$me, digits=3)*100
+label_rules$conf_LL <- ifelse(label_rules$conf_LL < 0, 0, label_rules$conf_LL)
+label_rules$conf_UL <- ifelse(label_rules$conf_UL > 100, 100, label_rules$conf_UL)
+
+label_rules$spliceogenicity <- round(label_rules$mean, digits=3)*100
+```
+
+## Prepare data for plots
+```{r}
+label_rules$Rule_sort <- as.numeric(gsub("DA", "", label_rules$Rule))
+label_rules$Rule_sort <- as.numeric(gsub("DD", "", label_rules$Rule))
+
+label_rules <- label_rules[order(label_rules$Rule_sort),]
+
+paper <- label_rules[,c("Rule", "Guidelines", "spliceogenicity", "conf_LL", "conf_UL", "n")]
+
+paper
+```
+
+```{r}
+#devtools::install_github("NightingaleHealth/ggforestplot")
+
+library(ggforestplot)
+library(ggplot2)
+library(ggseqlogo)
+library(grid) 
+
+forestplot(
+  df = label_rules[label_rules$facet == "DA", ],
+  name = Rule,
+  estimate = mean,
+  se = se,
+  colour = Guidelines,
+  xlab = "Spliceogenicity",
+)
+
+```
+
+```{r}
+
+forestplot(
+  df = label_rules[label_rules$facet == "DD", ],
+  name = Rule,
+  estimate = mean,
+  se = se,
+  colour = Guidelines,
+  xlab = "Spliceogenicity"
+) 
+
+```
+
