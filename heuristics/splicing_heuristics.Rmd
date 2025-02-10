@@ -23,8 +23,6 @@ label_rules$facet <- substr(label_rules$Rule, 1,2)
 
 label_rules[is.na(label_rules)] <- 0
 
-table(disruption_rules[disruption_rules$hgvs_pos=="0" & disruption_rules$Region == "Donor","class"])
-
 label_rules$mean <- label_rules[,"SAV"]/(label_rules[,"SAV"] + label_rules[,"Normal"])
 label_rules <- label_rules[!is.na(label_rules$mean),]
 label_rules <- label_rules[label_rules$Guidelines != "Creation",]
@@ -61,9 +59,12 @@ label_rules <- label_rules[order(label_rules$Rule_sort),]
 
 paper <- label_rules[,c("Rule", "Guidelines", "spliceogenicity", "conf_LL", "conf_UL", "n")]
 
-paper
+write.csv(file = "heuristic_values.tsv", paper, row.names = FALSE)
+
 ```
 
+
+## Plot Spliceogenicity
 ```{r}
 #devtools::install_github("NightingaleHealth/ggforestplot")
 

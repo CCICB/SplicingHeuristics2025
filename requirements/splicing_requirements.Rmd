@@ -17,7 +17,7 @@ library(ggpubr)
 
 ## Gencode Processing
 
-gencode <- read.csv("../exons/gencode.v44.exons.canonical.proteincoding.annotated.seq.tsv", sep = "\t", na.strings = ".")
+gencode <- read.csv("gencode.v44.exons.canonical.proteincoding.annotated.seq.tsv", sep = "\t", na.strings = ".")
 
 gencode <- gencode[(is.na(gencode$upstream_intron_length) | gencode$upstream_intron_length > 50 | (toupper(substr(gencode$upstream_exon_donor_seq,52,53)) == "GT" & toupper(substr(gencode$acceptor_seq,49,50)) == "AG")) & (is.na(gencode$downstream_intron_length) | gencode$downstream_intron_length > 50 | (toupper(substr(gencode$donor,52,53)) == "GT" & toupper(substr(gencode$acceptor_seq,49,50)) == "AG")),]
 
@@ -30,7 +30,7 @@ nrow(gencode)
 
 ## Branchpoint processing
 ```{r}
-branchpoints <- read.csv("../branchpoints/branchpoints.hg19.fastas.tsv", sep = "\t", na.strings = ".")
+branchpoints <- read.csv("branchpoints.hg19.fastas.tsv", sep = "\t", na.strings = ".")
 
 branchpoints$intron_type <- as.factor(branchpoints$intron_type)
 branchpoints$intron_type <- relevel(branchpoints$intron_type, "U2")
