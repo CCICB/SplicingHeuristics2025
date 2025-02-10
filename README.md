@@ -14,13 +14,13 @@ The repository is organized into several directories, each with a specific role 
 Includes the scripts to compute splicing requirements and create sequence logos.
 
 2. `heuristics/`
-Houses the code for generating data-driven heuristics for splice-altering variant evaluation and spliceogenicity.
+Contains per-variant results for data-driven heuristics and plot code for spliceogenicity.
 
 3. `novel/`
-Contains the code to apply splicing requirements to novel variants and the plot for pseudoexon inclusion mechanisms.
+Contains the code to plot for pseudoexon inclusion mechanisms.
 
 4. `outcomes/`
-Plotting the splicing transcript outcomes based on the location of the splice-altering variant.
+Code to plot the splicing transcript outcomes based on the location of the splice-altering variant.
 
 5. `references/`
 Holds the reference files.
