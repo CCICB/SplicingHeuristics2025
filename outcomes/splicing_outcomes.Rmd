@@ -1,0 +1,51 @@
+---
+title: "splicing_outcomes"
+output: html_document
+date: "2025-01-28"
+---
+
+```{r}
+disruption_rules <- read.csv("../heuristics/heuristics.tsv", sep='\t')
+
+rules_labels <- list(
+  list(rule = grepl('Branchpoint', disruption_rules$Region), label = "Branchpoint"),
+  list(rule = grepl('PPT', disruption_rules$Region), label = "PPT"),
+  list(rule = disruption_rules$hgvs_pos == -3 & disruption_rules$Region != 'Donor', label = "-3"),
+  list(rule = (disruption_rules$hgvs_pos == -1 | disruption_rules$hgvs_pos == -2) & disruption_rules$Region != 'Donor', label = "Acceptor Canonical"),
+  list(rule = disruption_rules$Region != 'Donor' & disruption_rules$hgvs_pos == 0, label = "E+1"),
+  list(rule = disruption_rules$Region == 'Donor' & disruption_rules$hgvs_pos <= 0, label = "Donor Exonic"),
+  list(rule = (disruption_rules$hgvs_pos == 1 | disruption_rules$hgvs_pos == 2) & disruption_rules$Region == 'Donor', label = "Donor Canonical"),
+  list(rule = disruption_rules$Region == 'Donor' & disruption_rules$hgvs_pos > 2, label = "Donor Intronic")
+)
+
+outcome_summary_region <- t(as.data.frame(Total, row.names = c("Label", "Vars", "Skipping", "Truncation", "Extension", "Retention")))
+for (entry in rules_labels) {
+  rule <- entry$rule
+  label <- entry$label
+  
+  outcome_summary_region <- rbind(outcome_summary_region, c(
+    label, 
+    length(disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"]),
+    round(sum(grepl("skipping", disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"])) / length(disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"]), 2),
+    round(sum(grepl("truncation", disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"])) / length(disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"]), 2),
+    round(sum(grepl("extension", disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"])) / length(disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"]), 2),
+    round(sum(grepl("retention", disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"])) / length(disruption_rules[rule & disruption_rules$Outcome != "None" & disruption_rules$Guidelines != "Creation", "Outcome"]), 2)
+  ))
+}
+
+outcome_summary_region <- data.frame(outcome_summary_region)
+
+outcome_summary_region_melt <- melt(outcome_summary_region[,c("Label", "Skipping", "Truncation","Extension","Retention")], id.vars='Label')
+outcome_summary_region_melt$value <- as.numeric(outcome_summary_region_melt$value)
+
+```
+
+
+```{r}
+
+library(ggpubr)
+library(reshape2)
+
+ggbarplot(outcome_summary_region_melt[outcome_summary_region_melt$Label != "All",], "variable", "value", fill = "variable", position=position_dodge(), facet.by="Label",  ncol=4, label = TRUE, xlab="Splicing Outcome", ylab="Outcome observed", ylim=c(0,1), palette=c("#004488", "#882255", "#BBBBBB", "#FBB040")) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
